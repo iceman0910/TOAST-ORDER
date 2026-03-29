@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="麵糰計算">
+<title>麵糰重量計算</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F2EC; --surface: #FDFCF9; --surface2: #F0EDE5;
+    --border: #DDD9CF; --border-strong: #C4BFB2;
+    --text: #1C1A16; --text-muted: #7A7568; --text-dim: #A8A39A;
+    --accent: #C85A2A; --accent-light: #F7EDE6; --wheat: #D4A843;
+    --mono: 'DM Mono', monospace; --sans: 'Noto Sans TC', sans-serif; --tap: 48px;
+  }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+  .app { max-width: 640px; margin: 0 auto; padding: 1.25rem 1rem 5rem; }
+
+  /* Header */
+  .header { border-bottom: 1.5px solid var(--border-strong); padding-bottom: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; flex-direction: column; gap: 2px; }
+  .header-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .header-title span { color: var(--accent); }
+  .header-ver { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.06em; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; background: var(--surface2); border-radius: 12px; padding: 3px; margin-bottom: 1.25rem; border: 1px solid var(--border); }
+  .tab { flex: 1; padding: 11px 0; border: none; background: transparent; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.18s; min-height: var(--tap); }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .tab.active.wheat-tab { color: var(--wheat); }
+
+  /* Card */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+  .card-header { padding: 10px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .card-icon { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: var(--accent); color: #fff; flex-shrink: 0; }
+  .card-icon.wheat { background: var(--wheat); }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; flex: 1; }
+
+  /* Edit button in card header */
+  .edit-btn { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: transparent; font-family: var(--sans); font-size: 11px; color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .edit-btn:active { background: var(--border); }
+  .edit-btn svg { flex-shrink: 0; }
+
+  /* Edit panel (expanded defaults editor) */
+  .edit-panel { display: none; background: var(--accent-light); border-top: 1px solid var(--border); padding: 12px 14px; }
+  .edit-panel.open { display: block; }
+  .edit-panel-title { font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+  .edit-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(200,90,42,0.12); }
+  .edit-row:last-of-type { border-bottom: none; }
+  .edit-row-label { flex: 1; font-size: 14px; color: var(--text); }
+  .edit-input { width: 80px; height: 38px; padding: 0 10px; text-align: right; font-family: var(--mono); font-size: 15px; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 8px; color: var(--text); -moz-appearance: textfield; -webkit-appearance: none; }
+  .edit-input::-webkit-inner-spin-button, .edit-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .edit-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,90,42,0.12); }
+  .edit-unit { font-family: var(--mono); font-size: 12px; color: var(--text-muted); min-width: 20px; }
+  .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .edit-save { flex: 1; height: 40px; border: none; border-radius: 9px; background: var(--accent); color: #fff; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+  .edit-save:active { opacity: 0.8; }
+  .edit-reset { height: 40px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 9px; background: transparent; color: var(--text-muted); font-family: var(--sans); font-size: 13px; cursor: pointer; }
+
+  /* Card body rows */
+  .card-body { padding: 2px 0; }
+  .row { display: flex; align-items: center; padding: 0 14px; min-height: var(--tap); border-bottom: 1px solid var(--border); gap: 10px; }
+  .row:last-child { border-bottom: none; }
+  .row-label { flex: 1; font-size: 15px; color: var(--text); line-height: 1.3; }
+  .row-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-family: var(--mono); }
+  .input-wrap { display: flex; align-items: center; gap: 5px; }
+  .input-wrap input { width: 80px; height: 40px; padding: 0 10px; text-align: right; font-family: var(--mono); font-size: 16px; background: var(--bg); border: 1.5px solid var(--border-strong); border-radius: 9px; color: var(--text); transition: border-color 0.15s, box-shadow 0.15s; -moz-appearance: textfield; -webkit-appearance: none; }
+  .input-wrap input::-webkit-inner-spin-button, .input-wrap input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .input-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,90,42,0.12); }
+  .unit { font-family: var(--mono); font-size: 13px; color: var(--text-muted); min-width: 20px; }
+  .row-calc { font-family: var(--mono); font-size: 13px; color: var(--text-muted); min-width: 72px; text-align: right; }
+
+  .subtotal-row { background: var(--surface2); display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px dashed var(--border-strong); min-height: 40px; }
+  .subtotal-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .subtotal-val { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); }
+
+  .deduct-row { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; gap: 12px; min-height: var(--tap); }
+  .deduct-label { font-size: 15px; color: var(--text); }
+  .deduct-input-wrap { display: flex; align-items: center; gap: 6px; }
+  .deduct-input { width: 110px; height: 44px; padding: 0 12px; text-align: right; font-family: var(--mono); font-size: 18px; font-weight: 500; background: var(--bg); border: 1.5px solid var(--border-strong); border-radius: 10px; color: var(--text); -moz-appearance: textfield; -webkit-appearance: none; }
+  .deduct-input::-webkit-inner-spin-button, .deduct-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .deduct-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,90,42,0.12); }
+
+  .fixed-row { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; min-height: var(--tap); }
+  .fixed-row-label { font-size: 15px; color: var(--text); }
+  .fixed-val { font-family: var(--mono); font-size: 15px; color: var(--text-muted); }
+
+  .ratio-row { border-top: 1px dashed var(--border-strong); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+  .ratio-label { font-size: 13px; color: var(--text-muted); }
+  .ratio-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .ratio-val { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); }
+
+  /* Result */
+  .result { background: var(--accent); border-radius: 14px; padding: 1.1rem 1.25rem; margin-top: 6px; margin-bottom: 10px; }
+  .result.wheat-result { background: var(--wheat); }
+  .result-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .result-label { color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .result-hint { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.55); }
+  .result-weight { text-align: right; }
+  .result-value { font-family: var(--mono); font-size: 36px; font-weight: 500; color: #fff; line-height: 1; }
+  .result-unit-lg { font-size: 16px; color: rgba(255,255,255,0.7); }
+  .result-bottom { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; }
+  .multiplier-label { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 2px; }
+  .multiplier-val { font-family: var(--mono); font-size: 28px; font-weight: 500; color: #fff; line-height: 1; }
+  .multiplier-unit { font-size: 14px; color: rgba(255,255,255,0.7); }
+  .copy-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 18px; height: 44px; min-width: 90px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); color: #fff; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+  .copy-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.97); }
+  .copy-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* Breakdown */
+  .breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .breakdown-title { font-size: 11px; font-weight: 500; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .breakdown-items { display: flex; flex-direction: column; gap: 6px; }
+  .breakdown-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; min-height: 28px; }
+  .breakdown-item-label { color: var(--text-muted); }
+  .breakdown-item-val { font-family: var(--mono); color: var(--text); }
+  .breakdown-item.deduct .breakdown-item-val { color: var(--accent); }
+  .breakdown-item.total { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; font-weight: 500; font-size: 15px; }
+  .breakdown-item.total .breakdown-item-label { color: var(--text); }
+
+  .tmr-badge { display: inline-block; background: var(--accent-light); color: var(--accent); font-size: 10px; font-weight: 500; border-radius: 4px; padding: 1px 6px; margin-left: 6px; font-family: var(--mono); vertical-align: middle; }
+
+  /* Custom items */
+  .custom-items-wrap { padding: 2px 0; }
+  .custom-item-row { display: flex; align-items: center; padding: 0 14px; min-height: var(--tap); border-bottom: 1px solid var(--border); gap: 10px; }
+  .custom-item-label { flex: 1; font-size: 15px; color: var(--text); }
+  .custom-item-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-family: var(--mono); }
+
+  /* Add item form inside edit panel */
+  .add-item-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(200,90,42,0.2); }
+  .add-item-title { font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+  .add-item-fields { display: flex; flex-direction: column; gap: 8px; }
+  .add-item-row { display: flex; align-items: center; gap: 8px; }
+  .add-item-row label { font-size: 13px; color: var(--text-muted); min-width: 42px; }
+  .add-item-text { flex: 1; height: 38px; padding: 0 10px; font-family: var(--sans); font-size: 14px; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 8px; color: var(--text); }
+  .add-item-text:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,90,42,0.12); }
+  .add-item-num { width: 80px; height: 38px; padding: 0 10px; text-align: right; font-family: var(--mono); font-size: 15px; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 8px; color: var(--text); -moz-appearance: textfield; -webkit-appearance: none; }
+  .add-item-num::-webkit-inner-spin-button, .add-item-num::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .add-item-num:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,90,42,0.12); }
+  .add-item-btn { width: 100%; height: 40px; margin-top: 4px; border: 1.5px dashed var(--accent); border-radius: 9px; background: transparent; color: var(--accent); font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .add-item-btn:active { background: var(--accent-light); }
+
+  /* Existing custom items in edit panel */
+  .custom-edit-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+  .custom-edit-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; }
+  .custom-edit-item-info { flex: 1; font-size: 13px; color: var(--text); }
+  .custom-edit-item-sub { font-size: 11px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+  .custom-delete-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--border-strong); border-radius: 7px; background: transparent; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
+  .custom-delete-btn:active { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title">麵糰<span>重量</span>計算</div>
+      <div class="header-ver">v2.1 · 預設值可編輯・自訂品項</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('white')">白吐司</button>
+    <button class="tab wheat-tab" onclick="switchTab('wheat')">全麥吐司</button>
+  </div>
+
+  <!-- WHITE PANEL -->
+  <div class="panel active" id="panel-white">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">吐</div>
+        <div class="card-title">白吐司</div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="row-label">隔天貫數<div class="row-hint">1貫 = 6條 × 1000g</div></div>
+          <div class="input-wrap">
+            <input type="number" id="w-guan" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calc()">
+            <span class="unit">貫</span>
+          </div>
+          <div class="row-calc" id="w-guan-g"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">法</div>
+        <div class="card-title">軟法 <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--text-dim)">1條 = 200g</span></div>
+        <button class="edit-btn" onclick="toggleEdit('w-sf-edit')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          編輯預設
+        </button>
+      </div>
+      <div class="edit-panel" id="w-sf-edit">
+        <div class="edit-panel-title">修改各天預設數量</div>
+        <div class="edit-row"><span class="edit-row-label">週一</span><input type="number" class="edit-input" id="def-w-sf-mon" min="0" inputmode="numeric" placeholder="0"><span class="edit-unit">條</span></div>
+        <div class="edit-row"><span class="edit-row-label">週二</span><input type="number" class="edit-input" id="def-w-sf-tue" min="0" inputmode="numeric"><span class="edit-unit">條</span></div>
+        <div class="edit-row"><span class="edit-row-label">週三</span><input type="number" class="edit-input" id="def-w-sf-wed" min="0" inputmode="numeric" placeholder="0"><span class="edit-unit">條</span></div>
+        <div class="edit-row"><span class="edit-row-label">週四</span><input type="number" class="edit-input" id="def-w-sf-thu" min="0" inputmode="numeric"><span class="edit-unit">條</span></div>
+        <div class="edit-row"><span class="edit-row-label">週五</span><input type="number" class="edit-input" id="def-w-sf-fri" min="0" inputmode="numeric"><span class="edit-unit">條</span></div>
+        <div class="edit-row"><span class="edit-row-label">週六</span><input type="number" class="edit-input" id="def-w-sf-sat" min="0" inputmode="numeric"><span class="edit-unit">條</span></div>
+        <div class="edit-row"><span class="edit-row-label">週日</span><input type="number" class="edit-input" id="def-w-sf-sun" min="0" inputmode="numeric" placeholder="0"><span class="edit-unit">條</span></div>
+        <div class="edit-actions">
+          <button class="edit-save" onclick="saveDefaults('w-sf')">儲存</button>
+          <button class="edit-reset" onclick="resetDefaults('w-sf')">恢復預設</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row"><div class="row-label">週一<span class="tmr-badge" id="badge-mon" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-mon" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-mon-g"></div></div>
+        <div class="row"><div class="row-label">週二<span class="tmr-badge" id="badge-tue" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-tue" min="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-tue-g"></div></div>
+        <div class="row"><div class="row-label">週三<span class="tmr-badge" id="badge-wed" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-wed" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-wed-g"></div></div>
+        <div class="row"><div class="row-label">週四<span class="tmr-badge" id="badge-thu" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-thu" min="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-thu-g"></div></div>
+        <div class="row"><div class="row-label">週五<span class="tmr-badge" id="badge-fri" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-fri" min="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-fri-g"></div></div>
+        <div class="row"><div class="row-label">週六<span class="tmr-badge" id="badge-sat" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-sat" min="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-sat-g"></div></div>
+        <div class="row"><div class="row-label">週日<span class="tmr-badge" id="badge-sun" style="display:none">明天</span></div><div class="input-wrap"><input type="number" id="w-sf-sun" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">條</span></div><div class="row-calc" id="w-sf-sun-g"></div></div>
+        <div class="subtotal-row"><div class="subtotal-label">明日軟法小計</div><div class="subtotal-val" id="w-soft-sub">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">包</div>
+        <div class="card-title">青醬乳酪捲</div>
+        <button class="edit-btn" onclick="toggleEdit('w-bun-edit')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          編輯預設
+        </button>
+      </div>
+      <div class="edit-panel" id="w-bun-edit">
+        <div class="edit-panel-title">修改預設數量</div>
+        <div class="edit-row"><span class="edit-row-label">每天數量</span><input type="number" class="edit-input" id="def-w-bun" min="0" inputmode="numeric"><span class="edit-unit">個</span></div>
+        <div class="edit-actions">
+          <button class="edit-save" onclick="saveDefaults('w-bun')">儲存</button>
+          <button class="edit-reset" onclick="resetDefaults('w-bun')">恢復預設</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="row-label">數量<div class="row-hint" id="w-bun-hint">預設每天 6 個</div></div>
+          <div class="input-wrap"><input type="number" id="w-bun" min="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit">個</span></div>
+          <div class="row-calc" id="w-bun-g"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="w-custom-card">
+      <div class="card-header">
+        <div class="card-icon">加</div>
+        <div class="card-title">自訂品項</div>
+        <button class="edit-btn" onclick="toggleEdit('w-custom-edit')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          管理品項
+        </button>
+      </div>
+      <div class="edit-panel" id="w-custom-edit">
+        <div class="edit-panel-title">已新增的品項</div>
+        <div class="custom-edit-list" id="w-custom-edit-list"></div>
+        <div class="add-item-section">
+          <div class="add-item-title">新增品項</div>
+          <div class="add-item-fields">
+            <div class="add-item-row"><label>名稱</label><input type="text" class="add-item-text" id="w-new-name" placeholder="品項名稱"></div>
+            <div class="add-item-row"><label>重量</label><input type="number" class="add-item-num" id="w-new-weight" min="1" placeholder="g" inputmode="numeric"><span class="edit-unit">g／個</span></div>
+            <div class="add-item-row"><label>預設數量</label><input type="number" class="add-item-num" id="w-new-default" min="0" placeholder="0" inputmode="numeric"><span class="edit-unit">個</span></div>
+          </div>
+          <button class="add-item-btn" onclick="addCustomItem('w')">＋ 新增</button>
+        </div>
+      </div>
+      <div class="custom-items-wrap" id="w-custom-rows"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon">單</div><div class="card-title">訂單</div></div>
+      <div class="deduct-row">
+        <div class="deduct-label">訂單重量</div>
+        <div class="deduct-input-wrap"><input type="number" class="deduct-input" id="w-order" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit" style="font-size:14px">g</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon">留</div><div class="card-title">預留</div></div>
+      <div class="fixed-row"><div class="fixed-row-label">固定預留麵糰</div><div class="fixed-val">800 g</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon" style="background:var(--text-muted)">餘</div><div class="card-title">當天剩餘麵糰</div></div>
+      <div class="deduct-row">
+        <div class="deduct-label">剩餘數量（扣除）</div>
+        <div class="deduct-input-wrap"><input type="number" class="deduct-input" id="w-leftover" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calc()"><span class="unit" style="font-size:14px">g</span></div>
+      </div>
+      <div class="ratio-row">
+        <div><div class="ratio-label">舊麵糰佔比</div><div class="ratio-hint">剩餘 ÷ 隔天攪拌總量</div></div>
+        <div class="ratio-val" id="w-ratio">—</div>
+      </div>
+    </div>
+
+    <div class="result">
+      <div class="result-top">
+        <div><div class="result-label">隔天需攪拌重量</div><div class="result-hint">1倍 = 6,442g</div></div>
+        <div class="result-weight"><span class="result-value" id="w-final">—</span><span class="result-unit-lg"> g</span></div>
+      </div>
+      <div class="result-bottom">
+        <div><div class="multiplier-label">攪拌倍數</div><div><span class="multiplier-val" id="w-multiplier">—</span> <span class="multiplier-unit">倍</span></div></div>
+        <button class="copy-btn" id="w-copy-btn" data-val="—" onclick="copyMultiplier()" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          複製倍數
+        </button>
+      </div>
+    </div>
+
+    <div class="breakdown"><div class="breakdown-title">計算明細</div><div class="breakdown-items" id="w-breakdown"></div></div>
+  </div>
+
+  <!-- WHEAT PANEL -->
+  <div class="panel" id="panel-wheat">
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon wheat">吐</div><div class="card-title">全麥吐司</div></div>
+      <div class="card-body">
+        <div class="row">
+          <div class="row-label">隔天貫數<div class="row-hint">1貫 = 6條 × 1000g</div></div>
+          <div class="input-wrap"><input type="number" id="wh-guan" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calcWheat()"><span class="unit">貫</span></div>
+          <div class="row-calc" id="wh-guan-g"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon wheat">捲</div>
+        <div class="card-title">陽光麥穀捲 <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--text-dim)">1個 = 300g</span></div>
+        <button class="edit-btn" onclick="toggleEdit('wh-sun-edit')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          編輯預設
+        </button>
+      </div>
+      <div class="edit-panel" id="wh-sun-edit">
+        <div class="edit-panel-title">修改預設數量</div>
+        <div class="edit-row"><span class="edit-row-label">每天數量</span><input type="number" class="edit-input" id="def-wh-sun" min="0" inputmode="numeric"><span class="edit-unit">個</span></div>
+        <div class="edit-actions">
+          <button class="edit-save" onclick="saveDefaults('wh-sun')">儲存</button>
+          <button class="edit-reset" onclick="resetDefaults('wh-sun')">恢復預設</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="row-label">數量<div class="row-hint" id="wh-sun-hint">預設每天 2 個</div></div>
+          <div class="input-wrap"><input type="number" id="wh-sun" min="0" step="1" inputmode="numeric" oninput="calcWheat()"><span class="unit">個</span></div>
+          <div class="row-calc" id="wh-sun-g"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon wheat">包</div>
+        <div class="card-title">乳酪核桃麥包 <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--text-dim)">1個 = 140g</span></div>
+        <button class="edit-btn" onclick="toggleEdit('wh-wal-edit')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          編輯預設
+        </button>
+      </div>
+      <div class="edit-panel" id="wh-wal-edit">
+        <div class="edit-panel-title">修改預設數量</div>
+        <div class="edit-row"><span class="edit-row-label">每天數量</span><input type="number" class="edit-input" id="def-wh-wal" min="0" inputmode="numeric"><span class="edit-unit">個</span></div>
+        <div class="edit-actions">
+          <button class="edit-save" onclick="saveDefaults('wh-wal')">儲存</button>
+          <button class="edit-reset" onclick="resetDefaults('wh-wal')">恢復預設</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="row-label">數量<div class="row-hint" id="wh-wal-hint">預設每天 6 個</div></div>
+          <div class="input-wrap"><input type="number" id="wh-wal" min="0" step="1" inputmode="numeric" oninput="calcWheat()"><span class="unit">個</span></div>
+          <div class="row-calc" id="wh-wal-g"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="wh-custom-card">
+      <div class="card-header">
+        <div class="card-icon wheat">加</div>
+        <div class="card-title">自訂品項</div>
+        <button class="edit-btn" onclick="toggleEdit('wh-custom-edit')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          管理品項
+        </button>
+      </div>
+      <div class="edit-panel" id="wh-custom-edit">
+        <div class="edit-panel-title">已新增的品項</div>
+        <div class="custom-edit-list" id="wh-custom-edit-list"></div>
+        <div class="add-item-section">
+          <div class="add-item-title">新增品項</div>
+          <div class="add-item-fields">
+            <div class="add-item-row"><label>名稱</label><input type="text" class="add-item-text" id="wh-new-name" placeholder="品項名稱"></div>
+            <div class="add-item-row"><label>重量</label><input type="number" class="add-item-num" id="wh-new-weight" min="1" placeholder="g" inputmode="numeric"><span class="edit-unit">g／個</span></div>
+            <div class="add-item-row"><label>預設數量</label><input type="number" class="add-item-num" id="wh-new-default" min="0" placeholder="0" inputmode="numeric"><span class="edit-unit">個</span></div>
+          </div>
+          <button class="add-item-btn" onclick="addCustomItem('wh')">＋ 新增</button>
+        </div>
+      </div>
+      <div class="custom-items-wrap" id="wh-custom-rows"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon wheat">單</div><div class="card-title">訂單</div></div>
+      <div class="deduct-row">
+        <div class="deduct-label">訂單重量</div>
+        <div class="deduct-input-wrap"><input type="number" class="deduct-input" id="wh-order" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calcWheat()"><span class="unit" style="font-size:14px">g</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon wheat">留</div><div class="card-title">預留</div></div>
+      <div class="fixed-row"><div class="fixed-row-label">固定預留麵糰</div><div class="fixed-val">800 g</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-icon" style="background:var(--text-muted)">餘</div><div class="card-title">當天剩餘麵糰</div></div>
+      <div class="deduct-row">
+        <div class="deduct-label">剩餘數量（扣除）</div>
+        <div class="deduct-input-wrap"><input type="number" class="deduct-input" id="wh-leftover" min="0" placeholder="0" step="1" inputmode="numeric" oninput="calcWheat()"><span class="unit" style="font-size:14px">g</span></div>
+      </div>
+      <div class="ratio-row">
+        <div><div class="ratio-label">舊麵糰佔比</div><div class="ratio-hint">剩餘 ÷ 隔天攪拌總量</div></div>
+        <div class="ratio-val" id="wh-ratio">—</div>
+      </div>
+    </div>
+
+    <div class="result wheat-result">
+      <div class="result-top">
+        <div><div class="result-label">隔天需攪拌重量</div><div class="result-hint">1倍 = 6,564g</div></div>
+        <div class="result-weight"><span class="result-value" id="wh-final">—</span><span class="result-unit-lg"> g</span></div>
+      </div>
+      <div class="result-bottom">
+        <div><div class="multiplier-label">攪拌倍數</div><div><span class="multiplier-val" id="wh-multiplier">—</span> <span class="multiplier-unit">倍</span></div></div>
+        <button class="copy-btn" id="wh-copy-btn" data-val="—" onclick="copyMultiplierWheat()" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          複製倍數
+        </button>
+      </div>
+    </div>
+
+    <div class="breakdown"><div class="breakdown-title">計算明細</div><div class="breakdown-items" id="wh-breakdown"></div></div>
+  </div>
+
+</div>
+
+<script>
+const VERSION = 'v2.1';
+
+// ── 原始預設值（恢復預設用）──
+const FACTORY = {
+  'w-sf': { mon:0, tue:15, wed:0, thu:25, fri:20, sat:30, sun:0 },
+  'w-bun': { val:6 },
+  'wh-sun': { val:2 },
+  'wh-wal': { val:6 },
+};
+
+// ── localStorage helpers ──
+function lsGet(key, fallback) { try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; } catch(e) { return fallback; } }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+
+// ── Load saved defaults ──
+function loadDefaults() {
+  const sf = lsGet('def-w-sf', FACTORY['w-sf']);
+  ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => {
+    const el = document.getElementById('w-sf-' + k);
+    const v = sf[k];
+    if (v) { el.value = v; el.removeAttribute('placeholder'); }
+    else { el.value = ''; el.setAttribute('placeholder','0'); }
+    const defEl = document.getElementById('def-w-sf-' + k);
+    if (defEl) defEl.value = v || '';
+  });
+
+  const bun = lsGet('def-w-bun', FACTORY['w-bun'].val);
+  document.getElementById('w-bun').value = bun;
+  document.getElementById('def-w-bun').value = bun;
+  document.getElementById('w-bun-hint').textContent = `預設每天 ${bun} 個`;
+
+  const sun = lsGet('def-wh-sun', FACTORY['wh-sun'].val);
+  document.getElementById('wh-sun').value = sun;
+  document.getElementById('def-wh-sun').value = sun;
+  document.getElementById('wh-sun-hint').textContent = `預設每天 ${sun} 個`;
+
+  const wal = lsGet('def-wh-wal', FACTORY['wh-wal'].val);
+  document.getElementById('wh-wal').value = wal;
+  document.getElementById('def-wh-wal').value = wal;
+  document.getElementById('wh-wal-hint').textContent = `預設每天 ${wal} 個`;
+}
+
+// ── Save defaults ──
+function saveDefaults(group) {
+  if (group === 'w-sf') {
+    const obj = {};
+    ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => {
+      obj[k] = parseInt(document.getElementById('def-w-sf-' + k).value) || 0;
+      const el = document.getElementById('w-sf-' + k);
+      if (obj[k]) { el.value = obj[k]; el.removeAttribute('placeholder'); }
+      else { el.value = ''; el.setAttribute('placeholder','0'); }
+    });
+    lsSet('def-w-sf', obj);
+  } else if (group === 'w-bun') {
+    const v = parseInt(document.getElementById('def-w-bun').value) || 0;
+    lsSet('def-w-bun', v);
+    document.getElementById('w-bun').value = v;
+    document.getElementById('w-bun-hint').textContent = `預設每天 ${v} 個`;
+  } else if (group === 'wh-sun') {
+    const v = parseInt(document.getElementById('def-wh-sun').value) || 0;
+    lsSet('def-wh-sun', v);
+    document.getElementById('wh-sun').value = v;
+    document.getElementById('wh-sun-hint').textContent = `預設每天 ${v} 個`;
+  } else if (group === 'wh-wal') {
+    const v = parseInt(document.getElementById('def-wh-wal').value) || 0;
+    lsSet('def-wh-wal', v);
+    document.getElementById('wh-wal').value = v;
+    document.getElementById('wh-wal-hint').textContent = `預設每天 ${v} 個`;
+  }
+  toggleEdit(group === 'w-sf' ? 'w-sf-edit' : group === 'w-bun' ? 'w-bun-edit' : group === 'wh-sun' ? 'wh-sun-edit' : 'wh-wal-edit');
+  calc(); calcWheat();
+}
+
+// ── Reset to factory defaults ──
+function resetDefaults(group) {
+  if (group === 'w-sf') {
+    const f = FACTORY['w-sf'];
+    ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => {
+      document.getElementById('def-w-sf-' + k).value = f[k] || '';
+    });
+  } else if (group === 'w-bun') {
+    document.getElementById('def-w-bun').value = FACTORY['w-bun'].val;
+  } else if (group === 'wh-sun') {
+    document.getElementById('def-wh-sun').value = FACTORY['wh-sun'].val;
+  } else if (group === 'wh-wal') {
+    document.getElementById('def-wh-wal').value = FACTORY['wh-wal'].val;
+  }
+}
+
+// ── Toggle edit panel ──
+function toggleEdit(id) {
+  const panel = document.getElementById(id);
+  panel.classList.toggle('open');
+}
+
+// ── Day logic ──
+const TODAY = new Date().getDay();
+const TOMORROW = (TODAY + 1) % 7;
+const DAY_KEY = { 0:'sun', 1:'mon', 2:'tue', 3:'wed', 4:'thu', 5:'fri', 6:'sat' };
+const DAY_LABEL = { 0:'週日', 1:'週一', 2:'週二', 3:'週三', 4:'週四', 5:'週五', 6:'週六' };
+const tmrKey = DAY_KEY[TOMORROW];
+const badge = document.getElementById('badge-' + tmrKey);
+if (badge) badge.style.display = 'inline-block';
+
+function fmt(n) { return Math.round(n).toLocaleString('zh-TW'); }
+function val(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calc() {
+  const TOAST_W = 1000, SOFT_W = 200, BUN_W = 150, RESERVE = 800, BATCH = 6442;
+  const guan = val('w-guan');
+  const toastG = guan * 6 * TOAST_W;
+  document.getElementById('w-guan-g').textContent = toastG > 0 ? fmt(toastG) + ' g' : '';
+
+  ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => {
+    const v = val('w-sf-' + k);
+    document.getElementById('w-sf-' + k + '-g').textContent = v > 0 ? fmt(v * SOFT_W) + ' g' : '';
+  });
+
+  const tomorrowCnt = val('w-sf-' + tmrKey);
+  const softG = tomorrowCnt * SOFT_W;
+  document.getElementById('w-soft-sub').textContent = fmt(softG) + ' g';
+
+  const bunCount = val('w-bun');
+  const bunG = bunCount * BUN_W;
+  document.getElementById('w-bun-g').textContent = bunG > 0 ? fmt(bunG) + ' g' : '';
+
+  const orderG = val('w-order');
+  const { total: customTotal, breakdown: customBreakdown } = getCustomTotal('w');
+  const total = toastG + softG + bunG + orderG + customTotal + RESERVE;
+  const leftover = val('w-leftover');
+  const final = Math.max(0, total - leftover);
+
+  document.getElementById('w-final').textContent = fmt(final);
+  document.getElementById('w-ratio').textContent = leftover > 0 && total > 0 ? (leftover / total * 100).toFixed(2) + ' %' : '—';
+
+  const multiplier = final > 0 ? Math.ceil(final / BATCH * 100) / 100 : 0;
+  const mText = multiplier > 0 ? multiplier.toFixed(2) : '—';
+  document.getElementById('w-multiplier').textContent = mText;
+  const btn = document.getElementById('w-copy-btn');
+  btn.disabled = multiplier <= 0;
+  btn.setAttribute('data-val', mText);
+
+  const items = [];
+  if (toastG > 0) items.push({ label: `白吐司 ${guan}貫 × 6條 × 1000g`, val: fmt(toastG) + ' g', cls: '' });
+  if (softG > 0) items.push({ label: `軟法 ${tomorrowCnt}條 × 200g（${DAY_LABEL[TOMORROW]}）`, val: fmt(softG) + ' g', cls: '' });
+  if (bunG > 0) items.push({ label: `青醬乳酪捲 ${bunCount}個 × 150g`, val: fmt(bunG) + ' g', cls: '' });
+  customBreakdown.forEach(b => items.push(b));
+  if (orderG > 0) items.push({ label: '訂單', val: fmt(orderG) + ' g', cls: '' });
+  items.push({ label: '固定預留', val: '800 g', cls: '' });
+  items.push({ label: '需求總量', val: fmt(total) + ' g', cls: 'total' });
+  if (leftover > 0) items.push({ label: '扣除當天剩餘', val: '−' + fmt(leftover) + ' g', cls: 'deduct' });
+  items.push({ label: '隔天攪拌重量', val: fmt(final) + ' g', cls: 'total' });
+  document.getElementById('w-breakdown').innerHTML = items.map(i =>
+    `<div class="breakdown-item ${i.cls}"><span class="breakdown-item-label">${i.label}</span><span class="breakdown-item-val">${i.val}</span></div>`).join('');
+}
+
+function calcWheat() {
+  const TOAST_W = 1000, SUN_W = 300, WAL_W = 140, RESERVE = 800, BATCH = 6564;
+  const guan = val('wh-guan');
+  const toastG = guan * 6 * TOAST_W;
+  document.getElementById('wh-guan-g').textContent = toastG > 0 ? fmt(toastG) + ' g' : '';
+
+  const sunCount = val('wh-sun');
+  const sunG = sunCount * SUN_W;
+  document.getElementById('wh-sun-g').textContent = sunG > 0 ? fmt(sunG) + ' g' : '';
+
+  const walCount = val('wh-wal');
+  const walG = walCount * WAL_W;
+  document.getElementById('wh-wal-g').textContent = walG > 0 ? fmt(walG) + ' g' : '';
+
+  const orderG = val('wh-order');
+  const { total: customTotal, breakdown: customBreakdown } = getCustomTotal('wh');
+  const total = toastG + sunG + walG + orderG + customTotal + RESERVE;
+  const leftover = val('wh-leftover');
+  const final = Math.max(0, total - leftover);
+
+  document.getElementById('wh-final').textContent = fmt(final);
+  document.getElementById('wh-ratio').textContent = leftover > 0 && total > 0 ? (leftover / total * 100).toFixed(2) + ' %' : '—';
+
+  const multiplier = final > 0 ? Math.ceil(final / BATCH * 100) / 100 : 0;
+  const mText = multiplier > 0 ? multiplier.toFixed(2) : '—';
+  document.getElementById('wh-multiplier').textContent = mText;
+  const btn = document.getElementById('wh-copy-btn');
+  btn.disabled = multiplier <= 0;
+  btn.setAttribute('data-val', mText);
+
+  const items = [];
+  if (toastG > 0) items.push({ label: `全麥吐司 ${guan}貫 × 6條 × 1000g`, val: fmt(toastG) + ' g', cls: '' });
+  if (sunG > 0) items.push({ label: `陽光麥穀捲 ${sunCount}個 × 300g`, val: fmt(sunG) + ' g', cls: '' });
+  if (walG > 0) items.push({ label: `乳酪核桃麥包 ${walCount}個 × 140g`, val: fmt(walG) + ' g', cls: '' });
+  customBreakdown.forEach(b => items.push(b));
+  if (orderG > 0) items.push({ label: '訂單', val: fmt(orderG) + ' g', cls: '' });
+  items.push({ label: '固定預留', val: '800 g', cls: '' });
+  items.push({ label: '需求總量', val: fmt(total) + ' g', cls: 'total' });
+  if (leftover > 0) items.push({ label: '扣除當天剩餘', val: '−' + fmt(leftover) + ' g', cls: 'deduct' });
+  items.push({ label: '隔天攪拌重量', val: fmt(final) + ' g', cls: 'total' });
+  document.getElementById('wh-breakdown').innerHTML = items.map(i =>
+    `<div class="breakdown-item ${i.cls}"><span class="breakdown-item-label">${i.label}</span><span class="breakdown-item-val">${i.val}</span></div>`).join('');
+}
+
+function doCopy(btnId, v) {
+  if (!v || v === '—') return;
+  const numOnly = parseFloat(v).toFixed(2);
+  const btn = document.getElementById(btnId);
+  const orig = btn.innerHTML;
+  function done() {
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 已複製';
+    btn.style.background = 'rgba(255,255,255,0.3)';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2000);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(numOnly).then(done).catch(() => fallback(numOnly, done));
+  } else { fallback(numOnly, done); }
+}
+function fallback(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); cb(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+function copyMultiplier() { doCopy('w-copy-btn', document.getElementById('w-copy-btn').getAttribute('data-val')); }
+function copyMultiplierWheat() { doCopy('wh-copy-btn', document.getElementById('wh-copy-btn').getAttribute('data-val')); }
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'white') || (i === 1 && tab === 'wheat'));
+  });
+  document.getElementById('panel-white').classList.toggle('active', tab === 'white');
+  document.getElementById('panel-wheat').classList.toggle('active', tab === 'wheat');
+}
+
+
+// ── Custom items ──
+function getCustomItems(prefix) {
+  return lsGet('custom-' + prefix, []);
+}
+function saveCustomItems(prefix, items) {
+  lsSet('custom-' + prefix, items);
+}
+
+function renderCustomRows(prefix) {
+  const items = getCustomItems(prefix);
+  const rowsEl = document.getElementById(prefix + '-custom-rows');
+  const editListEl = document.getElementById(prefix + '-custom-edit-list');
+  const calcFn = prefix === 'w' ? calc : calcWheat;
+
+  // Render input rows
+  if (items.length === 0) {
+    rowsEl.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:var(--text-dim);">尚無自訂品項</div>';
+  } else {
+    rowsEl.innerHTML = items.map((item, i) => `
+      <div class="custom-item-row">
+        <div class="custom-item-label">${item.name}<div class="custom-item-hint">${item.weight}g／個・預設 ${item.def} 個</div></div>
+        <div class="input-wrap">
+          <input type="number" id="${prefix}-custom-${i}" min="0" value="${item.def || ''}" placeholder="0"
+            step="1" inputmode="numeric" oninput="${prefix === 'w' ? 'calc' : 'calcWheat'}()"
+            style="width:80px;height:40px;padding:0 10px;text-align:right;font-family:var(--mono);font-size:16px;background:var(--bg);border:1.5px solid var(--border-strong);border-radius:9px;color:var(--text);-moz-appearance:textfield;-webkit-appearance:none;">
+          <span class="unit">個</span>
+        </div>
+        <div class="row-calc" id="${prefix}-custom-${i}-g">${item.def ? Math.round(item.def * item.weight).toLocaleString('zh-TW') + ' g' : ''}</div>
+      </div>`).join('');
+  }
+
+  // Render edit list
+  if (items.length === 0) {
+    editListEl.innerHTML = '<div style="font-size:13px;color:var(--text-dim);padding:4px 0 8px;">尚無品項</div>';
+  } else {
+    editListEl.innerHTML = items.map((item, i) => `
+      <div class="custom-edit-item">
+        <div class="custom-edit-item-info">
+          ${item.name}
+          <div class="custom-edit-item-sub">${item.weight}g／個・預設 ${item.def} 個</div>
+        </div>
+        <button class="custom-delete-btn" data-prefix="${prefix}" data-index="${i}" title="刪除">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>`).join('');
+  }
+}
+
+function addCustomItem(prefix) {
+  const name = document.getElementById(prefix + '-new-name').value.trim();
+  const weight = parseInt(document.getElementById(prefix + '-new-weight').value) || 0;
+  const def = parseInt(document.getElementById(prefix + '-new-default').value) || 0;
+  if (!name || !weight) {
+    alert('請輸入品項名稱和重量');
+    return;
+  }
+  const items = getCustomItems(prefix);
+  items.push({ name, weight, def });
+  saveCustomItems(prefix, items);
+  document.getElementById(prefix + '-new-name').value = '';
+  document.getElementById(prefix + '-new-weight').value = '';
+  document.getElementById(prefix + '-new-default').value = '';
+  renderCustomRows(prefix);
+  prefix === 'w' ? calc() : calcWheat();
+}
+
+function deleteCustomItem(prefix, index) {
+  const items = getCustomItems(prefix);
+  items.splice(index, 1);
+  saveCustomItems(prefix, items);
+  renderCustomRows(prefix);
+  prefix === 'w' ? calc() : calcWheat();
+}
+
+// Event delegation for delete buttons (works reliably on iOS Safari)
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.custom-delete-btn');
+  if (!btn) return;
+  const prefix = btn.getAttribute('data-prefix');
+  const index = parseInt(btn.getAttribute('data-index'));
+  if (!prefix || isNaN(index)) return;
+  deleteCustomItem(prefix, index);
+});
+
+function getCustomTotal(prefix) {
+  const items = getCustomItems(prefix);
+  let total = 0;
+  const breakdown = [];
+  items.forEach((item, i) => {
+    const el = document.getElementById(prefix + '-custom-' + i);
+    const cnt = el ? (parseFloat(el.value) || 0) : 0;
+    const g = cnt * item.weight;
+    const calcEl = document.getElementById(prefix + '-custom-' + i + '-g');
+    if (calcEl) calcEl.textContent = g > 0 ? Math.round(g).toLocaleString('zh-TW') + ' g' : '';
+    if (g > 0) breakdown.push({ label: `${item.name} ${cnt}個 × ${item.weight}g`, val: Math.round(g).toLocaleString('zh-TW') + ' g', cls: '' });
+    total += g;
+  });
+  return { total, breakdown };
+}
+
+// ── Init ──
+loadDefaults();
+renderCustomRows('w');
+renderCustomRows('wh');
+calc();
+calcWheat();
+</script>
+</body>
+</html>
