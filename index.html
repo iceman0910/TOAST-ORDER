@@ -585,6 +585,15 @@
     </div>
   </div>
 
+  <!-- 閒置提示 banner -->
+  <div id="idle-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#e67e22;color:#fff;padding:12px 16px;z-index:200;align-items:center;justify-content:space-between;gap:12px;font-size:14px;">
+    <span>⏰ 頁面已閒置較長時間，建議重整後再使用截圖辨識</span>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="location.reload()" style="background:#fff;color:#e67e22;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600;">重整頁面</button>
+      <button onclick="document.getElementById('idle-banner').style.display='none'" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;">✕</button>
+    </div>
+  </div>
+
   <div class="footer">數量為空白或0的項目將自動略過數字</div>
 
   <!-- 贈品詢問 modal -->
@@ -622,6 +631,15 @@
         <button id="error-manual" class="btn" style="font-size:13px;padding:10px;background:var(--accent2);">✏️ 改用文字輸入</button>
         <button id="error-dismiss" class="btn" style="font-size:13px;padding:10px;background:#888;">✕ 關閉</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 閒置提示 banner -->
+  <div id="idle-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#e67e22;color:#fff;padding:12px 16px;z-index:200;align-items:center;justify-content:space-between;gap:12px;font-size:14px;">
+    <span>⏰ 頁面已閒置較長時間，建議重整後再使用截圖辨識</span>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="location.reload()" style="background:#fff;color:#e67e22;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600;">重整頁面</button>
+      <button onclick="document.getElementById('idle-banner').style.display='none'" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;">✕</button>
     </div>
   </div>
 
@@ -716,18 +734,8 @@ const textInput = document.getElementById('text-input');
 
 let imageBase64 = null;
 let imageFile = null;
-let activeTab = window.innerWidth <= 768 ? 'text' : 'image';
-
-// 手機版預設切換到文字輸入 tab
-if (window.innerWidth <= 768) {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelector('[data-tab="text"]').classList.add('active');
-    document.getElementById('tab-text').classList.add('active');
-    document.getElementById('scan-btn').disabled = false;
-  });
-}
+// 預設文字輸入（手機與桌面皆同）
+let activeTab = 'text';
 let lastParsed = {};
 
 
@@ -755,6 +763,24 @@ document.querySelectorAll('.tab').forEach(tab => {
 // Text input enables button
 textInput.addEventListener('input', () => {
   if (activeTab === 'text') scanBtn.disabled = textInput.value.trim() === '';
+});
+
+// 偵測貼上22個純數字 → 自動依品項順序填入
+textInput.addEventListener('paste', (e) => {
+  const pasted = (e.clipboardData || window.clipboardData).getData('text');
+  // 取出所有數字（含空行，過濾空字串後取數字）
+  const nums = pasted.split(/\n/).map(l => l.trim()).filter(l => l !== '');
+  const allNums = nums.every(l => /^\d+$/.test(l));
+  if (allNums && nums.length === 22) {
+    e.preventDefault();
+    // 依 ITEMS 順序填入
+    const lines = ITEMS.map((item, i) => {
+      const qty = parseInt(nums[i]);
+      return qty > 0 ? `${item}x${qty}` : `${item}x `;
+    });
+    textInput.value = lines.join('\n');
+    scanBtn.disabled = false;
+  }
 });
 
 function handleFile(file) {
@@ -1005,15 +1031,6 @@ async function scanImage() {
   statusEl.style.display = 'block';
   resultWrap.style.display = 'none';
 
-  // 30秒逾時檢查
-  const timeoutId = setTimeout(() => {
-    if (statusEl.textContent.includes('⏳')) {
-      statusEl.style.display = 'none';
-      showErrorModal('辨識時間過長（超過30秒），可能是網路問題或圖片太大。請重試或改用文字輸入。');
-      scanBtn.disabled = false;
-    }
-  }, 30000);
-
   const itemList = ITEMS.map((item,i) => `${i+1}.${item}`).join('、');
 
   const prompt = `這是一張訂單截圖，請仔細逐行閱讀每一個品項與對應的數量欄位，不要遺漏任何一行。品項名稱可能與標準名稱不同，請用模糊比對找出最接近的標準品項。以下是常見對應範例：
@@ -1043,8 +1060,8 @@ async function scanImage() {
       method: "POST",
       headers: { "Content-Type": "application/json", "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
+        model: "claude-sonnet-4-5",
+        max_tokens: 2000,
         messages: [{ role: "user", content: [
           { type: "image", source: { type: "base64", media_type: mimeType, data: imageBase64 } },
           { type: "text", text: prompt }
@@ -1099,8 +1116,7 @@ async function scanImage() {
       overlay.style.display = 'flex';
       document.getElementById('use-default-price').onclick = () => {
         overlay.style.display = 'none';
-        clearTimeout(timeoutId);
-    renderResult(items, { ...baseExtra, priceOverrides: {} });
+        renderResult(items, { ...baseExtra, priceOverrides: {} });
       };
       document.getElementById('use-screenshot-price').onclick = () => {
         overlay.style.display = 'none';
@@ -1244,6 +1260,27 @@ copyQtyBtn.addEventListener('click', () => {
   });
   copyText(qtys.join('\n'), toastQty);
 });
+
+// --- 閒置偵測：超過20分鐘提示重整 ---
+let lastActiveTime = Date.now();
+const IDLE_LIMIT = 20 * 60 * 1000; // 20分鐘
+
+function resetIdleTimer() {
+  lastActiveTime = Date.now();
+  const banner = document.getElementById('idle-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+  document.addEventListener(evt, resetIdleTimer, { passive: true });
+});
+
+setInterval(() => {
+  if (Date.now() - lastActiveTime > IDLE_LIMIT) {
+    const banner = document.getElementById('idle-banner');
+    if (banner) banner.style.display = 'flex';
+  }
+}, 60 * 1000); // 每分鐘檢查一次
 
 copyBtn.addEventListener('click', () => {
   const text = resultOutput.innerText || resultOutput.textContent;
