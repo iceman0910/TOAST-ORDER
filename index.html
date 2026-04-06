@@ -457,11 +457,11 @@
   </header>
 
   <div class="tabs">
-    <button class="tab active" data-tab="image">📷 截圖辨識</button>
-    <button class="tab" data-tab="text">📝 文字輸入</button>
+    <button class="tab" data-tab="image">📷 截圖辨識</button>
+    <button class="tab active" data-tab="text">📝 文字輸入</button>
   </div>
 
-  <div class="tab-panel active" id="tab-image">
+  <div class="tab-panel" id="tab-image">
     <div class="upload-zone" id="drop-zone">
       <input type="file" id="file-input" accept="image/*">
       <div class="upload-icon">📋</div>
@@ -495,7 +495,7 @@
     </div>
   </div>
 
-  <div class="tab-panel" id="tab-text">
+  <div class="tab-panel active" id="tab-text">
     <textarea id="text-input">高鈣x 
 香蒜x
 花生x
@@ -546,7 +546,7 @@
 
   <div class="status" id="status"></div>
 
-  <button class="btn" id="scan-btn" disabled>🔍 開始辨識</button>
+  <button class="btn" id="scan-btn">🔍 開始辨識</button>
 
   <div class="result-wrap" id="result-wrap">
     <hr class="divider">
@@ -763,6 +763,36 @@ document.querySelectorAll('.tab').forEach(tab => {
 // Text input enables button
 textInput.addEventListener('input', () => {
   if (activeTab === 'text') scanBtn.disabled = textInput.value.trim() === '';
+});
+
+// 方向鍵上下移動時，游標自動跳到該行 x 之後
+textInput.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+  // 只在每行有 x 格式時才介入
+  const lines = textInput.value.split('\n');
+  const pos = textInput.selectionStart;
+  // 計算目前在第幾行
+  let charCount = 0, currentLine = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (charCount + lines[i].length >= pos) { currentLine = i; break; }
+    charCount += lines[i].length + 1;
+  }
+
+  const targetLine = e.key === 'ArrowUp' ? currentLine - 1 : currentLine + 1;
+  if (targetLine < 0 || targetLine >= lines.length) return;
+
+  const line = lines[targetLine];
+  const xIdx = line.indexOf('x');
+  if (xIdx === -1) return; // 沒有 x 就不介入，讓瀏覽器預設行為
+
+  e.preventDefault();
+  // 計算目標行起始位置
+  let targetStart = 0;
+  for (let i = 0; i < targetLine; i++) targetStart += lines[i].length + 1;
+  // 游標放在 x 之後
+  const cursor = targetStart + xIdx + 1;
+  textInput.setSelectionRange(cursor, cursor);
 });
 
 // 偵測貼上22個純數字 → 自動依品項順序填入
