@@ -127,6 +127,10 @@
     background: #4a7c59;
     margin-top: 8px;
   }
+  .btn-detail {
+    background: #2471a3;
+    margin-top: 8px;
+  }
 
   .status {
     margin-top: 16px;
@@ -554,8 +558,10 @@
     <div id="result-output" contenteditable="true"></div>
     <button class="btn btn-copy" id="copy-btn">📋 一鍵複製</button>
     <button class="btn btn-copy btn-qty" id="copy-qty-btn">🔢 複製數量（Excel用）</button>
+    <button class="btn btn-copy btn-detail" id="copy-detail-btn">📊 複製金額明細</button>
     <div class="copied-toast" id="toast">✓ 已複製到剪貼簿</div>
     <div class="copied-toast" id="toast-qty">✓ 數量已複製</div>
+    <div class="copied-toast" id="toast-detail">✓ 明細已複製</div>
     <div id="stats-wrap"></div>
   </div>
 
@@ -737,6 +743,7 @@ let imageFile = null;
 // 預設文字輸入（手機與桌面皆同）
 let activeTab = 'text';
 let lastParsed = {};
+let lastDetail = '';
 
 
 const fileInput = document.getElementById('file-input');
@@ -759,6 +766,11 @@ document.querySelectorAll('.tab').forEach(tab => {
     }
   });
 });
+
+// 手機版文字框彈出數字鍵盤
+if (window.innerWidth <= 768) {
+  textInput.setAttribute('inputmode', 'decimal');
+}
 
 // Text input enables button
 textInput.addEventListener('input', () => {
@@ -1044,6 +1056,21 @@ function renderResult(parsed, extra={}) {
   statsHtml += `<tr class="total-row"><td>應付總金額</td><td>$${total}</td></tr>`;
   statsHtml += `</table>`;
 
+  // 產生可複製的純文字明細
+  let detailText = '金額明細\n';
+  itemBreakdown.forEach(({ item, qty, billableQty, setQty, unitPrice, amt }) => {
+    const billQty = setQty > 0 ? billableQty : qty;
+    detailText += `${item}$${unitPrice}×${billQty} =$${amt}\n`;
+  });
+  if (tastingSets) {
+    detailText += `試吃組$${TASTING_SET_PRICE}×${tastingSets} =$${tastingSets * TASTING_SET_PRICE}\n`;
+  }
+  detailText += `商品小計\t$${subtotal}`;
+  if (shipping) detailText += `\n運費\t+$${shipping}`;
+  if (discount) detailText += `\n折扣\t-$${discount}`;
+  detailText += `\n應付總金額\t$${total}`;
+  lastDetail = detailText;
+
   const statsWrap = document.getElementById('stats-wrap');
   statsWrap.innerHTML = statsHtml;
   statsWrap.style.display = 'block';
@@ -1311,6 +1338,13 @@ setInterval(() => {
     if (banner) banner.style.display = 'flex';
   }
 }, 60 * 1000); // 每分鐘檢查一次
+
+const copyDetailBtn = document.getElementById('copy-detail-btn');
+const toastDetail = document.getElementById('toast-detail');
+copyDetailBtn.addEventListener('click', () => {
+  if (!lastDetail) return;
+  copyText(lastDetail, toastDetail);
+});
 
 copyBtn.addEventListener('click', () => {
   const text = resultOutput.innerText || resultOutput.textContent;
