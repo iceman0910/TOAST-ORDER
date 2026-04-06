@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="訂單辨識">
 <title>訂單辨識工具</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
@@ -455,9 +458,10 @@
 </head>
 <body>
 <div class="container">
-  <header>
+  <header style="position:relative;">
     <h1>Order Scanner</h1>
     <h2>訂單截圖辨識工具</h2>
+    <button onclick="location.reload()" style="position:absolute;top:0;right:0;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer;color:var(--muted);">↺</button>
   </header>
 
   <div class="tabs">
