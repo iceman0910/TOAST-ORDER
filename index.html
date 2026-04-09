@@ -1132,9 +1132,19 @@ function renderResult(parsed, extra={}) {
     else regularCount += qty;
   });
   if (tastingSets) regularCount += tastingSets * 16;
-  lines.push(`${summaryId}＠$${total}(白x${regularCount} 麥x${wheatCount})`);
+  lines.push(`${summaryId}＠${total}(白x${regularCount} 麥x${wheatCount})`);
 
   resultOutput.textContent = lines.join('\n');
+
+  // 賣貨便模式：總片數未達15片提醒
+  if (extra.platformMode === 'sellgoods') {
+    const totalCount = regularCount + wheatCount;
+    if (totalCount < 15) {
+      setTimeout(() => {
+        showErrorModal(`此訂單共 ${totalCount} 片，未達最低出貨量 15 片，請提醒客人取消訂單不出貨。`, { title: '⚠️ 數量不足', color: '#e67e22', alertOnly: true });
+      }, 100);
+    }
+  }
 
   // --- 統計資訊（不列入複製範圍）---
   const REGULAR_ITEMS = ITEMS.filter(i => !i.startsWith('全麥'));
@@ -1321,9 +1331,15 @@ async function scanImage() {
   }
 }
 
-function showErrorModal(msg) {
+function showErrorModal(msg, opts={}) {
   const overlay = document.getElementById('error-modal-overlay');
+  const title = overlay.querySelector('h3');
+  title.textContent = opts.title || '⚠️ 辨識發生問題';
+  title.style.color = opts.color || '#c0392b';
   document.getElementById('error-modal-msg').textContent = msg || '辨識失敗，請確認圖片是否清晰，或改用文字輸入。';
+  // 純提醒模式：隱藏重試和切換按鈕
+  document.getElementById('error-retry').style.display = opts.alertOnly ? 'none' : 'block';
+  document.getElementById('error-manual').style.display = opts.alertOnly ? 'none' : 'block';
   overlay.style.display = 'flex';
 
   document.getElementById('error-retry').onclick = () => {
