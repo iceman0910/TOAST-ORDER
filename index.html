@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="訂單辨識">
-<title>訂單辨識工具</title>
+<meta name="apple-mobile-web-app-title" content="YASH Toast">
+<title>YASH Toast</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
 
@@ -459,8 +459,8 @@
 <body>
 <div class="container">
   <header style="position:relative;">
-    <h1>Order Scanner</h1>
-    <h2>訂單截圖辨識工具</h2>
+    <h1>YASH Toast</h1>
+    <h2>訂單處理工具</h2>
     <button onclick="location.reload()" style="position:absolute;top:0;right:0;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer;color:var(--muted);">↺</button>
   </header>
 
@@ -504,6 +504,20 @@
   </div>
 
   <div class="tab-panel active" id="tab-text">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;font-size:14px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+        <input type="radio" name="platform-mode" id="mode-normal" value="normal" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+        <span>一般</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+        <input type="radio" name="platform-mode" id="mode-sellgoods" value="sellgoods" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+        <span>賣貨便</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+        <input type="radio" name="platform-mode" id="mode-ihergo" value="ihergo" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+        <span>愛合購</span>
+      </label>
+    </div>
     <textarea id="text-input">高鈣x 
 香蒜x
 花生x
@@ -527,6 +541,10 @@
 全麥法式奶酥x
 全麥抹茶奶酥x</textarea>
     <div class="manual-fields" style="margin-top:12px;">
+      <div class="field-row" id="order-number-row" style="display:none;">
+        <label>訂單編號</label>
+        <input type="text" id="text-order-number" placeholder="訂單編號">
+      </div>
       <div class="field-row">
         <label>姓名</label>
         <input type="text" id="text-manual-name" placeholder="訂購人姓名">
@@ -539,11 +557,11 @@
         <label>到貨日期</label>
         <input type="text" id="text-manual-date" placeholder="例：2026-03-25">
       </div>
-      <div class="field-row">
+      <div class="field-row" id="text-time-row">
         <label>到貨時段</label>
         <input type="text" id="text-manual-time" placeholder="例：14:00 或 下午兩點">
       </div>
-      <div class="field-row">
+      <div class="field-row" id="text-address-row">
         <label>地址</label>
         <input type="text" id="text-manual-address" placeholder="收貨地址">
       </div>
@@ -595,6 +613,25 @@
     </div>
   </div>
 
+  <!-- 賣貨便運費詢問 modal -->
+  <div id="shipping-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+      <h3 id="shipping-modal-title" style="font-size:15px;font-weight:600;margin-bottom:8px;color:var(--accent);">是否加上運費？</h3>
+      <div id="shipping-fixed-section">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7;">是否加上賣貨便運費 <strong>$129</strong>？</p>
+        <div style="display:flex;gap:8px;">
+          <button id="shipping-yes" class="btn" style="flex:1;font-size:13px;padding:10px;">是，+$129</button>
+          <button id="shipping-no" class="btn btn-copy" style="flex:1;font-size:13px;padding:10px;">不加</button>
+        </div>
+      </div>
+      <div id="shipping-custom-section" style="display:none;">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.7;">輸入運費金額（留空或填0表示不加）</p>
+        <input type="number" id="shipping-custom-input" placeholder="例：60" min="0" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:15px;margin-bottom:12px;box-sizing:border-box;">
+        <button id="shipping-custom-confirm" class="btn" style="width:100%;font-size:13px;padding:10px;">確認</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 閒置提示 banner -->
   <div id="idle-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#e67e22;color:#fff;padding:12px 16px;z-index:200;align-items:center;justify-content:space-between;gap:12px;font-size:14px;">
     <span>⏰ 頁面已閒置較長時間，建議重整後再使用截圖辨識</span>
@@ -640,6 +677,25 @@
         <button id="error-retry" class="btn" style="font-size:13px;padding:10px;">🔄 重新辨識</button>
         <button id="error-manual" class="btn" style="font-size:13px;padding:10px;background:var(--accent2);">✏️ 改用文字輸入</button>
         <button id="error-dismiss" class="btn" style="font-size:13px;padding:10px;background:#888;">✕ 關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 賣貨便運費詢問 modal -->
+  <div id="shipping-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+      <h3 id="shipping-modal-title" style="font-size:15px;font-weight:600;margin-bottom:8px;color:var(--accent);">是否加上運費？</h3>
+      <div id="shipping-fixed-section">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7;">是否加上賣貨便運費 <strong>$129</strong>？</p>
+        <div style="display:flex;gap:8px;">
+          <button id="shipping-yes" class="btn" style="flex:1;font-size:13px;padding:10px;">是，+$129</button>
+          <button id="shipping-no" class="btn btn-copy" style="flex:1;font-size:13px;padding:10px;">不加</button>
+        </div>
+      </div>
+      <div id="shipping-custom-section" style="display:none;">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.7;">輸入運費金額（留空或填0表示不加）</p>
+        <input type="number" id="shipping-custom-input" placeholder="例：60" min="0" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:15px;margin-bottom:12px;box-sizing:border-box;">
+        <button id="shipping-custom-confirm" class="btn" style="width:100%;font-size:13px;padding:10px;">確認</button>
       </div>
     </div>
   </div>
@@ -720,6 +776,25 @@ const TEXT_INPUT_DEFAULT = `高鈣x
 全麥奶酥x
 全麥法式奶酥x
 全麥抹茶奶酥x`;
+const SELLGOODS_PRICES = {
+  "高鈣":29, "香蒜":25, "花生":25, "法式奶酥":37,
+  "抹茶奶酥":47, "奶油上白糖":27, "肉鬆":24, "巧克力":26,
+  "燻雞起士":38, "雙層起士火腿":39, "香蒜起士火腿":36, "厚切黑椒豬腿":52,
+  "全麥高鈣":30, "全麥香蒜":26, "全麥花生":26,
+  "全麥法式奶酥":38, "全麥抹茶奶酥":48
+};
+// 賣貨便沒有的品項
+const SELLGOODS_EXCLUDED = ["奶酥","草莓","藍莓","義式臘腸","全麥奶酥"];
+
+const IHERGO_PRICES = {
+  "高鈣":29, "香蒜":25, "花生":25, "奶酥":24, "法式奶酥":37,
+  "抹茶奶酥":47, "奶油上白糖":27, "肉鬆":24, "巧克力":26,
+  "草莓":21, "藍莓":21, "燻雞起士":38,
+  "雙層起士火腿":39, "香蒜起士火腿":36, "厚切黑椒豬腿":52,
+  "全麥高鈣":30, "全麥香蒜":26, "全麥花生":26, "全麥奶酥":25,
+  "全麥法式奶酥":38, "全麥抹茶奶酥":48
+};
+
 const TASTING_SET_PRICE = 540;
 const TASTING_SET_CONTENTS = {
   "高鈣":2, "香蒜":2, "花生":2, "法式奶酥":2,
@@ -775,6 +850,18 @@ document.querySelectorAll('.tab').forEach(tab => {
 if (window.innerWidth <= 768) {
   textInput.setAttribute('inputmode', 'decimal');
 }
+
+// 平台模式切換時顯示/隱藏訂單編號欄位
+document.querySelectorAll('input[name="platform-mode"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const orderRow = document.getElementById('order-number-row');
+    const addressRow = document.getElementById('text-address-row');
+    if (orderRow) orderRow.style.display = radio.value === 'sellgoods' ? 'flex' : 'none';
+    if (addressRow) addressRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
+    const timeRow = document.getElementById('text-time-row');
+    if (timeRow) timeRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
+  });
+});
 
 // Text input enables button
 textInput.addEventListener('input', () => {
@@ -1007,6 +1094,22 @@ function renderResult(parsed, extra={}) {
   lines.push(`訂購人：${extra.buyer || ''}`);
   lines.push(`到貨時間：${extra.arrival || ''}`);
   lines.push(`地址：${extra.address || ''}`);
+
+  // 摘要行：訂單編號或姓名＠總金額(白x片數 麥x片數)
+  const isSellgoodsMode = extra.platformMode === 'sellgoods';
+  const summaryId = isSellgoodsMode && extra.orderNumber
+    ? extra.orderNumber
+    : (extra.buyer ? extra.buyer.split(' ')[0] : '');
+  let regularCount = 0, wheatCount = 0;
+  ITEMS.forEach(item => {
+    const qty = parsed[item];
+    if (!qty || qty <= 0 || PRICES[item] === null) return;
+    if (item.startsWith('全麥')) wheatCount += qty;
+    else regularCount += qty;
+  });
+  if (tastingSets) regularCount += tastingSets * 16;
+  lines.push(`${summaryId}＠$${total}(白x${regularCount} 麥x${wheatCount})`);
+
   resultOutput.textContent = lines.join('\n');
 
   // --- 統計資訊（不列入複製範圍）---
@@ -1236,7 +1339,8 @@ scanBtn.addEventListener('click', () => {
     if (!textInput.value.trim()) return;
     // 合併文字框辨識的資訊與手動輸入欄位
     const parsed = parseTextInput(textInput.value);
-    const { items, shipping, discount, tastingSets, giftCandidates } = parsed;
+    const { items, discount, tastingSets, giftCandidates } = parsed;
+    let shipping = parsed.shipping || 0;
     let buyer = parsed.buyer || '';
     let arrival = parsed.arrival || '';
     let address = '';
@@ -1251,7 +1355,16 @@ scanBtn.addEventListener('click', () => {
     if (tDate || tTime) arrival = [tDate, tTime].filter(Boolean).join(' ');
     if (tAddress) address = tAddress;
 
-    if (giftCandidates.length > 0) {
+    const platformMode = document.querySelector('input[name="platform-mode"]:checked').value;
+    const priceOverrides = platformMode === 'sellgoods' ? { ...SELLGOODS_PRICES }
+                         : platformMode === 'ihergo'    ? { ...IHERGO_PRICES }
+                         : {};
+    const orderNumber = (document.getElementById('text-order-number')?.value || '').trim();
+
+    // 賣貨便模式：先詢問運費，再繼續
+    const proceedWithShipping = (finalShipping) => {
+      shipping = finalShipping;
+      if (giftCandidates.length > 0) {
       // 有加號項目，詢問是否為贈品
       const giftListEl = document.getElementById('gift-list');
       giftListEl.innerHTML = giftCandidates.map((g, i) =>
@@ -1272,10 +1385,48 @@ scanBtn.addEventListener('click', () => {
             giftQtys[g.item] = (giftQtys[g.item] || 0) + g.plusQty;
           }
         });
-        renderResult(items, { buyer, arrival, shipping, discount, tastingSets, giftQtys });
+        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, platformMode });
       };
     } else {
-      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets });
+      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, platformMode });
+      }
+    }; // end proceedWithShipping
+
+    if (platformMode === 'sellgoods') {
+      // 賣貨便：固定 $129 運費
+      const overlay = document.getElementById('shipping-modal-overlay');
+      document.getElementById('shipping-fixed-section').style.display = 'block';
+      document.getElementById('shipping-custom-section').style.display = 'none';
+      document.getElementById('shipping-modal-title').textContent = '是否加上賣貨便運費？';
+      overlay.style.display = 'flex';
+      document.getElementById('shipping-yes').onclick = () => { overlay.style.display = 'none'; proceedWithShipping(129); };
+      document.getElementById('shipping-no').onclick = () => { overlay.style.display = 'none'; proceedWithShipping(0); };
+    } else if (platformMode === 'ihergo') {
+      // 愛合購：自由輸入運費
+      const overlay = document.getElementById('shipping-modal-overlay');
+      document.getElementById('shipping-fixed-section').style.display = 'none';
+      document.getElementById('shipping-custom-section').style.display = 'block';
+      document.getElementById('shipping-modal-title').textContent = '是否加上運費？';
+      document.getElementById('shipping-custom-input').value = '';
+      overlay.style.display = 'flex';
+      document.getElementById('shipping-custom-confirm').onclick = () => {
+        overlay.style.display = 'none';
+        const val = parseInt(document.getElementById('shipping-custom-input').value) || 0;
+        proceedWithShipping(val);
+      };
+    } else {
+      // 一般模式：也詢問運費（自由輸入）
+      const overlay = document.getElementById('shipping-modal-overlay');
+      document.getElementById('shipping-fixed-section').style.display = 'none';
+      document.getElementById('shipping-custom-section').style.display = 'block';
+      document.getElementById('shipping-modal-title').textContent = '是否加上運費？';
+      document.getElementById('shipping-custom-input').value = shipping || '';
+      overlay.style.display = 'flex';
+      document.getElementById('shipping-custom-confirm').onclick = () => {
+        overlay.style.display = 'none';
+        const val = parseInt(document.getElementById('shipping-custom-input').value) || 0;
+        proceedWithShipping(val);
+      };
     }
   }
 });
