@@ -776,6 +776,24 @@ const TEXT_INPUT_DEFAULT = `高鈣x
 全麥奶酥x
 全麥法式奶酥x
 全麥抹茶奶酥x`;
+const SELLGOODS_DEFAULT_TEXT = `高鈣x 
+香蒜x
+花生x
+法式奶酥x
+抹茶奶酥x
+奶油上白糖x
+肉鬆x
+巧克力x
+燻雞起士x
+雙層起士火腿x
+香蒜起士火腿x
+厚切黑椒豬腿x
+全麥高鈣x
+全麥香蒜x
+全麥花生x
+全麥法式奶酥x
+全麥抹茶奶酥x`;
+
 const SELLGOODS_PRICES = {
   "高鈣":29, "香蒜":25, "花生":25, "法式奶酥":37,
   "抹茶奶酥":47, "奶油上白糖":27, "肉鬆":24, "巧克力":26,
@@ -860,6 +878,12 @@ document.querySelectorAll('input[name="platform-mode"]').forEach(radio => {
     if (addressRow) addressRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
     const timeRow = document.getElementById('text-time-row');
     if (timeRow) timeRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
+    // 切換文字框預設內容
+    if (radio.value === 'sellgoods') {
+      textInput.value = SELLGOODS_DEFAULT_TEXT;
+    } else {
+      textInput.value = TEXT_INPUT_DEFAULT;
+    }
   });
 });
 
