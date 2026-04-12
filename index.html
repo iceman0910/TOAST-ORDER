@@ -1184,15 +1184,13 @@ function renderResult(parsed, extra={}) {
       : (PRICES[item] || 0);
     const amt = unitPrice * billableQty;
     if (PRICES[item] !== null) {
-      // 數量統計用 billableQty（扣除試吃組展開的數量），避免重複計算
-      if (item.startsWith('全麥')) wheatTotal += billableQty;
-      else regularTotal += billableQty;
+      // 直接用 qty（已展開的實際數量）加總
+      if (item.startsWith('全麥')) wheatTotal += qty;
+      else regularTotal += qty;
       itemBreakdown.push({ item, qty, billableQty, setQty, unitPrice, amt });
     }
   });
 
-  // 試吃組片數另外加入（8種×2片×組數）
-  if (tastingSets) regularTotal += tastingSets * 16;
   const grandTotal = regularTotal + wheatTotal;
 
   let statsHtml = `
