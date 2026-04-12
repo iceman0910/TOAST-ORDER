@@ -1311,7 +1311,8 @@ async function scanImage() {
     if (manualName || manualPhone) buyer = [manualName, manualPhone].filter(Boolean).join(' ');
 
     let arrival = parsed.arrival || '';
-    if (manualDate || manualTime) arrival = [manualDate, manualTime].filter(Boolean).join(' ');
+    const normDateImg = (d) => /^\d{8}$/.test(d) ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
+    if (manualDate || manualTime) arrival = [normDateImg(manualDate), manualTime].filter(Boolean).join(' ');
 
     const baseExtra = {
       buyer, arrival,
@@ -1414,7 +1415,9 @@ scanBtn.addEventListener('click', () => {
     const tAddress = document.getElementById('text-manual-address').value.trim();
 
     if (tName || tPhone) buyer = [tName, tPhone].filter(Boolean).join(' ');
-    if (tDate || tTime) arrival = [tDate, tTime].filter(Boolean).join(' ');
+    // 統一日期格式 YYYYMMDD → YYYY-MM-DD
+    const normDate = (d) => /^\d{8}$/.test(d) ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
+    if (tDate || tTime) arrival = [normDate(tDate), tTime].filter(Boolean).join(' ');
     if (tAddress) address = tAddress;
 
     const platformMode = document.querySelector('input[name="platform-mode"]:checked').value;
