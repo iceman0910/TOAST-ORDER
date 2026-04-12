@@ -1190,14 +1190,13 @@ function renderResult(parsed, extra={}) {
     }
   });
 
-  const grandTotal = regularTotal + wheatTotal;
+  const grandTotal = regularTotal + wheatTotal; // 試吃組已展開計入各品項，不重複加
 
   let statsHtml = `
     <h4>數量統計</h4>
     <table>
       <tr><td>一般口味</td><td>${regularTotal} 個</td></tr>
       <tr><td>全麥口味</td><td>${wheatTotal} 個</td></tr>
-      ${tastingSets ? `<tr><td>試吃組</td><td>${tastingSets} 組</td></tr>` : ''}
       <tr class="total-row"><td>合計</td><td>${grandTotal + (tastingSets ? tastingSets : 0)} 個</td></tr>
     </table>
     <h4>金額明細</h4>
