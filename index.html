@@ -1153,7 +1153,6 @@ function renderResult(parsed, extra={}) {
     if (item.startsWith('全麥')) wheatCount += qty;
     else regularCount += qty;
   });
-  if (tastingSets) regularCount += tastingSets * 16;
   lines.push(`${summaryId}＠${total}(白x${regularCount} 麥x${wheatCount})`);
 
   resultOutput.textContent = lines.join('\n');
