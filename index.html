@@ -1143,6 +1143,12 @@ function renderResult(parsed, extra={}) {
   if (extra.platformMode !== 'sellgoods' && extra.address) lines.push(`${extra.address}`);
 
   // 摘要行：訂單編號或姓名＠總金額(白x片數 麥x片數)
+  // 白吐司/全麥吐司直接從 parsed 加總
+  const whiteTotal = ITEMS.filter(i => !i.startsWith('全麥') && PRICES[i] !== null)
+    .reduce((sum, i) => sum + (parsed[i] || 0), 0);
+  const wheatTotalFinal = ITEMS.filter(i => i.startsWith('全麥') && PRICES[i] !== null)
+    .reduce((sum, i) => sum + (parsed[i] || 0), 0);
+
   const isSellgoodsMode = extra.platformMode === 'sellgoods';
   const summaryId = isSellgoodsMode && extra.orderNumber
     ? extra.orderNumber
@@ -1184,12 +1190,7 @@ function renderResult(parsed, extra={}) {
     }
   });
 
-  // 直接用輸出品項數量加總，白吐司/全麥吐司各自合計
-  const whiteTotal = ITEMS.filter(i => !i.startsWith('全麥') && PRICES[i] !== null)
-    .reduce((sum, i) => sum + (parsed[i] || 0), 0);
-  const wheatTotalFinal = ITEMS.filter(i => i.startsWith('全麥') && PRICES[i] !== null)
-    .reduce((sum, i) => sum + (parsed[i] || 0), 0);
-  const grandTotal = whiteTotal + wheatTotalFinal;
+  const grandTotal = regularTotal + wheatTotal;
 
   let statsHtml = `
     <h4>數量統計</h4>
