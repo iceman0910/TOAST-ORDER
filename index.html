@@ -1117,7 +1117,7 @@ function renderResult(parsed, extra={}) {
   lines.push(`Total: $ ${total} 元`);
   lines.push(`訂購人：${extra.buyer || ''}`);
   lines.push(`到貨時間：${extra.arrival || ''}`);
-  if (extra.platformMode !== 'sellgoods') lines.push(`地址：${extra.address || ''}`);
+  if (extra.platformMode !== 'sellgoods' && extra.address) lines.push(`${extra.address}`);
 
   // 摘要行：訂單編號或姓名＠總金額(白x片數 麥x片數)
   const isSellgoodsMode = extra.platformMode === 'sellgoods';
