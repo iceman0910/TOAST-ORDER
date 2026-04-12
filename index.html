@@ -1147,14 +1147,7 @@ function renderResult(parsed, extra={}) {
   const summaryId = isSellgoodsMode && extra.orderNumber
     ? extra.orderNumber
     : (extra.buyer ? extra.buyer.split(' ')[0] : '');
-  let regularCount = 0, wheatCount = 0;
-  ITEMS.forEach(item => {
-    const qty = parsed[item];
-    if (!qty || qty <= 0 || PRICES[item] === null) return;
-    if (item.startsWith('全麥')) wheatCount += qty;
-    else regularCount += qty;
-  });
-  lines.push(`${summaryId}＠${total}(白x${regularCount} 麥x${wheatCount})`);
+  lines.push(`${summaryId}＠${total}(白x${whiteTotal} 麥x${wheatTotalFinal})`);
 
   resultOutput.textContent = lines.join('\n');
 
@@ -1185,20 +1178,24 @@ function renderResult(parsed, extra={}) {
       : (PRICES[item] || 0);
     const amt = unitPrice * billableQty;
     if (PRICES[item] !== null) {
-      // 直接用 qty（已展開的實際數量）加總
       if (item.startsWith('全麥')) wheatTotal += qty;
       else regularTotal += qty;
       itemBreakdown.push({ item, qty, billableQty, setQty, unitPrice, amt });
     }
   });
 
-  const grandTotal = regularTotal + wheatTotal;
+  // 直接用輸出品項數量加總，白吐司/全麥吐司各自合計
+  const whiteTotal = ITEMS.filter(i => !i.startsWith('全麥') && PRICES[i] !== null)
+    .reduce((sum, i) => sum + (parsed[i] || 0), 0);
+  const wheatTotalFinal = ITEMS.filter(i => i.startsWith('全麥') && PRICES[i] !== null)
+    .reduce((sum, i) => sum + (parsed[i] || 0), 0);
+  const grandTotal = whiteTotal + wheatTotalFinal;
 
   let statsHtml = `
     <h4>數量統計</h4>
     <table>
-      <tr><td>一般口味</td><td>${regularTotal} 個</td></tr>
-      <tr><td>全麥口味</td><td>${wheatTotal} 個</td></tr>
+      <tr><td>白吐司</td><td>${whiteTotal} 個</td></tr>
+      <tr><td>全麥吐司</td><td>${wheatTotalFinal} 個</td></tr>
       <tr class="total-row"><td>合計</td><td>${grandTotal + (tastingSets ? tastingSets : 0)} 個</td></tr>
     </table>
     <h4>金額明細</h4>
