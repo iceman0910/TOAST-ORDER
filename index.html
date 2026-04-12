@@ -1092,6 +1092,7 @@ function parseTextInput(rawText) {
     if (/試吃|綜合.*組|試吃組/.test(trimmed)) {
       const m = trimmed.match(/(\d+)/);
       tastingSets += m ? parseInt(m[1]) : 1;
+      continue; // 不再往下做品項比對
     }
     if (/運費|運送費|配送費/.test(trimmed)) {
       const m = trimmed.match(/(\d+)/);
