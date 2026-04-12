@@ -1148,6 +1148,7 @@ function renderResult(parsed, extra={}) {
     .reduce((sum, i) => sum + (parsed[i] || 0), 0);
   const wheatTotalFinal = ITEMS.filter(i => i.startsWith('全麥') && PRICES[i] !== null)
     .reduce((sum, i) => sum + (parsed[i] || 0), 0);
+  console.log('parsed items:', JSON.stringify(Object.fromEntries(ITEMS.filter(i=>parsed[i]>0).map(i=>[i,parsed[i]]))));
 
   const isSellgoodsMode = extra.platformMode === 'sellgoods';
   const summaryId = isSellgoodsMode && extra.orderNumber
