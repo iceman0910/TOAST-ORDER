@@ -1006,6 +1006,7 @@ function fuzzyScore(line, item) {
 
 function parseTextInput(rawText) {
   const result = {};
+  const rawExpr = {}; // 保留原始加號表達式
   let buyer = '', arrival = '', pendingName = '';
   const giftCandidates = [];
   const sorted = [...ITEMS].sort((a, b) => b.length - a.length);
@@ -1034,9 +1035,21 @@ function parseTextInput(rawText) {
     }
 
     // 偵測到貨時間
-    const dateMatch = trimmed.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2}[\s\T]?\d{0,2}:?\d{0,2})/);
+    const dateMatch = trimmed.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2}[\s\T]?\d{0,2}:?\d{0,2})/)
+                   || trimmed.match(/(\d{8})/); // 支援 20260325 格式
     if (dateMatch) {
-      arrival = dateMatch[1].trim();
+      let raw = dateMatch[1].trim();
+      // 純8位數字轉換成 YYYY-MM-DD
+      if (/^\d{8}$/.test(raw)) {
+        raw = `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`;
+      }
+      // 統一分隔符為 -
+      raw = raw.replace(/\//g, '-');
+      // 補零（2026-3-5 → 2026-03-05）
+      raw = raw.replace(/^(\d{4})-(\d{1})-(\d{2})/, '$1-0$2-$3')
+               .replace(/^(\d{4})-(\d{2})-(\d{1})$/, '$1-$2-0$3')
+               .replace(/^(\d{4})-(\d{1})-(\d{1})$/, '$1-0$2-0$3');
+      arrival = raw;
       continue;
     }
 
@@ -1061,6 +1074,12 @@ function parseTextInput(rawText) {
     }
     if (bestItem && bestScore >= 0.8) {
       result[bestItem] = (result[bestItem] || 0) + qty;
+      // 保留原始加號表達式供顯示用
+      if (hasPlus) {
+        rawExpr[bestItem] = rawExpr[bestItem]
+          ? rawExpr[bestItem] + '+' + numsAfterName.join('+')
+          : numsAfterName.join('+');
+      }
       if (hasPlus && plusQty > 0) {
         giftCandidates.push({ item: bestItem, plusQty });
       }
@@ -1085,7 +1104,7 @@ function parseTextInput(rawText) {
   }
   // 展開試吃組數量（金額仍以540/組計算）
   expandTastingSet(result, tastingSets);
-  return { items: result, buyer, arrival, shipping, discount, tastingSets, giftCandidates };
+  return { items: result, rawExpr, buyer, arrival, shipping, discount, tastingSets, giftCandidates };
 }
 
 // --- Render output ---
@@ -1099,6 +1118,7 @@ function renderResult(parsed, extra={}) {
   const priceOverrides = extra.priceOverrides || {};
   const giftQtys = extra.giftQtys || {};
   const tastingSetContents = extra.tastingSets ? TASTING_SET_CONTENTS : {};
+  const rawExpr = extra.rawExpr || {};
   const lines = ITEMS.map(item => {
     const qty = parsed[item];
     if (qty && qty > 0 && PRICES[item] !== null) {
@@ -1108,7 +1128,9 @@ function renderResult(parsed, extra={}) {
       const unitPrice = priceOverrides[item] !== undefined ? priceOverrides[item] : (PRICES[item] || 0);
       subtotal += unitPrice * billableQty;
     }
-    return (!qty || qty === 0) ? `${item}x ` : `${item}x${qty}`;
+    if (!qty || qty === 0) return `${item}x `;
+    // 有加號表達式則保留原始格式顯示
+    return rawExpr[item] ? `${item}x${rawExpr[item]}` : `${item}x${qty}`;
   });
 
   const shipping = extra.shipping || 0;
@@ -1379,7 +1401,7 @@ scanBtn.addEventListener('click', () => {
     if (!textInput.value.trim()) return;
     // 合併文字框辨識的資訊與手動輸入欄位
     const parsed = parseTextInput(textInput.value);
-    const { items, discount, tastingSets, giftCandidates } = parsed;
+    const { items, rawExpr, discount, tastingSets, giftCandidates } = parsed;
     let shipping = parsed.shipping || 0;
     let buyer = parsed.buyer || '';
     let arrival = parsed.arrival || '';
@@ -1425,10 +1447,10 @@ scanBtn.addEventListener('click', () => {
             giftQtys[g.item] = (giftQtys[g.item] || 0) + g.plusQty;
           }
         });
-        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, platformMode });
+        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, platformMode, rawExpr });
       };
     } else {
-      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, platformMode });
+      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, platformMode, rawExpr });
       }
     }; // end proceedWithShipping
 
