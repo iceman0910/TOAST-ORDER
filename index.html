@@ -545,6 +545,10 @@
         <label>訂單編號</label>
         <input type="text" id="text-order-number" placeholder="訂單編號">
       </div>
+      <div class="field-row" id="ihergo-account-row" style="display:none;">
+        <label>愛合購帳號</label>
+        <input type="text" id="text-ihergo-account" placeholder="愛合購帳號">
+      </div>
       <div class="field-row">
         <label>姓名</label>
         <input type="text" id="text-manual-name" placeholder="訂購人姓名">
@@ -878,6 +882,8 @@ document.querySelectorAll('input[name="platform-mode"]').forEach(radio => {
     if (addressRow) addressRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
     const timeRow = document.getElementById('text-time-row');
     if (timeRow) timeRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
+    const ihergoRow = document.getElementById('ihergo-account-row');
+    if (ihergoRow) ihergoRow.style.display = radio.value === 'ihergo' ? 'flex' : 'none';
     // 切換文字框預設內容
     if (radio.value === 'sellgoods') {
       textInput.value = SELLGOODS_DEFAULT_TEXT;
@@ -1151,8 +1157,11 @@ function renderResult(parsed, extra={}) {
   console.log('parsed items:', JSON.stringify(Object.fromEntries(ITEMS.filter(i=>parsed[i]>0).map(i=>[i,parsed[i]]))));
 
   const isSellgoodsMode = extra.platformMode === 'sellgoods';
+  const isIhergoMode = extra.platformMode === 'ihergo';
   const summaryId = isSellgoodsMode && extra.orderNumber
     ? extra.orderNumber
+    : isIhergoMode && extra.ihergoAccount
+    ? extra.ihergoAccount
     : (extra.buyer ? extra.buyer.split(' ')[0] : '');
   lines.push(`${summaryId}＠${total}(白x${whiteTotal} 麥x${wheatTotalFinal})`);
 
@@ -1424,6 +1433,7 @@ scanBtn.addEventListener('click', () => {
                          : platformMode === 'ihergo'    ? { ...IHERGO_PRICES }
                          : {};
     const orderNumber = (document.getElementById('text-order-number')?.value || '').trim();
+    const ihergoAccount = (document.getElementById('text-ihergo-account')?.value || '').trim();
 
     // 賣貨便模式：先詢問運費，再繼續
     const proceedWithShipping = (finalShipping) => {
@@ -1449,10 +1459,10 @@ scanBtn.addEventListener('click', () => {
             giftQtys[g.item] = (giftQtys[g.item] || 0) + g.plusQty;
           }
         });
-        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, platformMode, rawExpr });
+        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, ihergoAccount, platformMode, rawExpr });
       };
     } else {
-      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, platformMode, rawExpr });
+      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, ihergoAccount, platformMode, rawExpr });
       }
     }; // end proceedWithShipping
 
