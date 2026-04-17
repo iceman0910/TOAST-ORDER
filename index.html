@@ -541,6 +541,10 @@
 全麥法式奶酥x
 全麥抹茶奶酥x</textarea>
     <div class="manual-fields" style="margin-top:12px;">
+      <div class="field-row" id="normal-account-row">
+        <label>帳號</label>
+        <input type="text" id="text-normal-account" placeholder="帳號（選填）">
+      </div>
       <div class="field-row" id="order-number-row" style="display:none;">
         <label>訂單編號</label>
         <input type="text" id="text-order-number" placeholder="訂單編號">
@@ -568,6 +572,12 @@
       <div class="field-row" id="text-address-row">
         <label>地址</label>
         <input type="text" id="text-manual-address" placeholder="收貨地址">
+      </div>
+      <div id="self-pickup-row" style="margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;user-select:none;">
+          <input type="checkbox" id="text-self-pickup" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
+          <span>自取</span>
+        </label>
       </div>
     </div>
   </div>
@@ -884,6 +894,10 @@ document.querySelectorAll('input[name="platform-mode"]').forEach(radio => {
     if (timeRow) timeRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
     const ihergoRow = document.getElementById('ihergo-account-row');
     if (ihergoRow) ihergoRow.style.display = radio.value === 'ihergo' ? 'flex' : 'none';
+    const normalAccountRow = document.getElementById('normal-account-row');
+    if (normalAccountRow) normalAccountRow.style.display = radio.value === 'sellgoods' ? 'none' : 'flex';
+    const selfPickupRow = document.getElementById('self-pickup-row');
+    if (selfPickupRow) selfPickupRow.style.display = radio.value === 'sellgoods' ? 'none' : 'block';
     // 切換文字框預設內容
     if (radio.value === 'sellgoods') {
       textInput.value = SELLGOODS_DEFAULT_TEXT;
@@ -1158,11 +1172,15 @@ function renderResult(parsed, extra={}) {
 
   const isSellgoodsMode = extra.platformMode === 'sellgoods';
   const isIhergoMode = extra.platformMode === 'ihergo';
-  const summaryId = isSellgoodsMode && extra.orderNumber
+  const isSelfPickup = extra.selfPickup || false;
+  const baseId = isSellgoodsMode && extra.orderNumber
     ? extra.orderNumber
     : isIhergoMode && extra.ihergoAccount
     ? extra.ihergoAccount
+    : extra.normalAccount
+    ? extra.normalAccount
     : (extra.buyer ? extra.buyer.split(' ')[0] : '');
+  const summaryId = isSelfPickup ? `(自取)${baseId}` : baseId;
   lines.push(`${summaryId}＠${total}(白x${whiteTotal} 麥x${wheatTotalFinal})`);
 
   resultOutput.textContent = lines.join('\n');
@@ -1434,6 +1452,8 @@ scanBtn.addEventListener('click', () => {
                          : {};
     const orderNumber = (document.getElementById('text-order-number')?.value || '').trim();
     const ihergoAccount = (document.getElementById('text-ihergo-account')?.value || '').trim();
+    const normalAccount = (document.getElementById('text-normal-account')?.value || '').trim();
+    const selfPickup = document.getElementById('text-self-pickup')?.checked || false;
 
     // 賣貨便模式：先詢問運費，再繼續
     const proceedWithShipping = (finalShipping) => {
@@ -1459,10 +1479,10 @@ scanBtn.addEventListener('click', () => {
             giftQtys[g.item] = (giftQtys[g.item] || 0) + g.plusQty;
           }
         });
-        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, ihergoAccount, platformMode, rawExpr });
+        renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, giftQtys, priceOverrides, orderNumber, ihergoAccount, normalAccount, selfPickup, platformMode, rawExpr });
       };
     } else {
-      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, ihergoAccount, platformMode, rawExpr });
+      renderResult(items, { buyer, arrival, address, shipping, discount, tastingSets, priceOverrides, orderNumber, ihergoAccount, normalAccount, selfPickup, platformMode, rawExpr });
       }
     }; // end proceedWithShipping
 
