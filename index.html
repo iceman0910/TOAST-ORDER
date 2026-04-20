@@ -1168,7 +1168,6 @@ function renderResult(parsed, extra={}) {
     .reduce((sum, i) => sum + (parsed[i] || 0), 0);
   const wheatTotalFinal = ITEMS.filter(i => i.startsWith('全麥') && PRICES[i] !== null)
     .reduce((sum, i) => sum + (parsed[i] || 0), 0);
-  console.log('parsed items:', JSON.stringify(Object.fromEntries(ITEMS.filter(i=>parsed[i]>0).map(i=>[i,parsed[i]]))));
 
   const isSellgoodsMode = extra.platformMode === 'sellgoods';
   const isIhergoMode = extra.platformMode === 'ihergo';
@@ -1187,7 +1186,7 @@ function renderResult(parsed, extra={}) {
 
   // 賣貨便模式：總片數未達15片提醒
   if (extra.platformMode === 'sellgoods') {
-    const totalCount = regularCount + wheatCount;
+    const totalCount = whiteTotal + wheatTotalFinal;
     if (totalCount < 15) {
       setTimeout(() => {
         showErrorModal(`此訂單共 ${totalCount} 片，未達最低出貨量 15 片，請提醒客人取消訂單不出貨。`, { title: '⚠️ 數量不足', color: '#e67e22', alertOnly: true });
