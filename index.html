@@ -1441,7 +1441,8 @@ scanBtn.addEventListener('click', () => {
     if (!textInput.value.trim()) return;
     // 合併文字框辨識的資訊與手動輸入欄位
     const parsed = parseTextInput(textInput.value);
-    const { items, rawExpr, discount, tastingSets, giftCandidates } = parsed;
+    const { items, rawExpr, tastingSets, giftCandidates } = parsed;
+    let discount = parsed.discount || 0;
     let shipping = parsed.shipping || 0;
     let buyer = parsed.buyer || '';
     let arrival = parsed.arrival || '';
